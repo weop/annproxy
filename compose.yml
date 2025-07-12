@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   annproxy:
     build: .
@@ -15,6 +13,4 @@ services:
       - "9990:9990"
     restart: unless-stopped
     volumes:
-      - ./wg.conf:/etc/wireguard/wg0.conf:ro
-    logging:
-      driver: "none"
+      - ./wg_minimal.conf:/etc/wireguard/wg0.conf:ro
