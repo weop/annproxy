@@ -5,11 +5,8 @@ RUN apk add --no-cache \
     wireguard-tools \
     iptables \
     tinyproxy \
-    openrc \
     bash \
-    iproute2 \
-    procps \
-    hexdump
+    iproute2
 
 # Create directories
 RUN mkdir -p /etc/wireguard \
@@ -17,14 +14,11 @@ RUN mkdir -p /etc/wireguard \
     && touch /var/log/tinyproxy.log \
     && chown tinyproxy:tinyproxy /var/log/tinyproxy.log
 
-# Copy WireGuard configuration
-COPY wg_fixed.conf /etc/wireguard/wg0.conf
-
 # Copy tinyproxy configuration
 COPY tinyproxy.conf /etc/tinyproxy/tinyproxy.conf
 
 # Copy startup script
-COPY debug_startup.sh /startup.sh
+COPY startup.sh /startup.sh
 RUN chmod +x /startup.sh
 
 # Expose proxy port
