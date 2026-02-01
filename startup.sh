@@ -7,6 +7,15 @@ echo 1 > /proc/sys/net/ipv4/ip_forward
 # Start WireGuard
 wg-quick up wg0
 
+# 1. Force a safe MTU (Standard is 1420, but 1280 prevents almost all fragmentation issues)
+ip link set dev wg0 mtu 1280
+
+# 2. HARDCODE the MSS to 1200. 
+# Do NOT use --clamp-mss-to-pmtu.
+# 1280 (MTU) - 40 (IP+TCP headers) = 1240. We use 1220 to be safe.
+iptables -t mangle -A OUTPUT -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1220
+iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --set-mss 1220
+
 # Check if WireGuard is up
 if ! wg show wg0 > /dev/null 2>&1; then
     echo "Failed to start WireGuard"
@@ -30,9 +39,16 @@ iptables -t mangle -A DIVERT -j MARK --set-mark 1
 iptables -t mangle -A DIVERT -j ACCEPT
 iptables -t mangle -A PREROUTING -p tcp -m socket -j DIVERT
 iptables -t mangle -A PREROUTING -p tcp --dport 9990 -j ACCEPT
+
+# --- NEW: Exclude Local/Docker Networks from VPN Routing ---
+# If the destination is Private (Local LAN or Docker), SKIP the marking
+iptables -t mangle -A OUTPUT -d 10.0.0.0/8 -j RETURN
+iptables -t mangle -A OUTPUT -d 172.16.0.0/12 -j RETURN
+iptables -t mangle -A OUTPUT -d 192.168.0.0/16 -j RETURN
+# -----------------------------------------------------------
+
+# Apply Mark to everything else (The Internet)
 iptables -t mangle -A OUTPUT -p tcp -m owner --uid-owner tinyproxy -j MARK --set-mark 2
-ip rule add fwmark 2 lookup 200
-ip route add default dev wg0 table 200
 
 # Start tinyproxy
 echo "Starting tinyproxy..."

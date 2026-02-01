@@ -8,9 +8,22 @@ services:
       - SYS_MODULE
     sysctls:
       - net.ipv4.ip_forward=1
-      - net.ipv6.conf.all.disable_ipv6=0
+      - net.ipv6.conf.all.disable_ipv6=1
     ports:
       - "9990:9990"
     restart: unless-stopped
     volumes:
       - ./wg_minimal.conf:/etc/wireguard/wg0.conf:ro
+    networks:
+      - traefik_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.tcp.routers.annproxy.rule=HostSNI(`anne.untitled1.net`)"
+      - "traefik.tcp.routers.annproxy.entrypoints=websecure"
+      - "traefik.tcp.routers.annproxy.tls=true"
+      - "traefik.tcp.routers.annproxy.tls.certresolver=myresolver"
+      - "traefik.tcp.services.annproxy.loadbalancer.server.port=9990"
+
+networks:
+  traefik_default:
+    external: true
